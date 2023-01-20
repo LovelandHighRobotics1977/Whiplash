@@ -22,6 +22,7 @@
 #include <math.h>
 #include <cameraserver/CameraServer.h>
 #include "AHRS.h"
+#include <iostream>
 //#include "frc/span"
 
 
@@ -46,17 +47,18 @@ class Robot : public frc::TimedRobot {
   //**************************************************************Drive Loop******************************************************
   void drive(double FWD, double STR, double RCW){
     yaw = ahrs->GetYaw();
+    double yaw2 = yaw;
     if(yaw<0){
-      yaw += 360; 
+      yaw2 += 360; 
     }
 
     yaw = (yaw * (M_PI/180));
+    yaw2 = (yaw2 * (M_PI/180));
 
-    double temp = ((FWD * cos(yaw)) + (STR * sin(yaw)));
-    STR = ((-FWD) * sin(yaw)) + (STR * cos(yaw));
+    double temp = ((FWD * cos(yaw2)) + (STR * sin(yaw)));
+    STR = (((-FWD) * sin(yaw)) + (STR * cos(yaw2)));
     FWD = temp;
-    std::cout<< "FWD "<<FWD<<" STR "<<STR<<" RCW "<< RCW <<std::endl;
-
+    std::cout<<"STR: "<<STR<<std::endl;
 
 
     //********Setting ratios for wheel distance********
@@ -96,19 +98,19 @@ class Robot : public frc::TimedRobot {
 
 
     //*********Optimize wheel angles********
-    angleitize(oldwa1,wa1);
+    angleOptimize(oldwa1,wa1);
     wa1=outputAngle;
     ws1*=direction;
 
-    angleitize(oldwa2,wa2);
+    angleOptimize(oldwa2,wa2);
     wa2=outputAngle;
     ws2*=direction;
 
-    angleitize(oldwa3,wa3);
+    angleOptimize(oldwa3,wa3);
     wa3=outputAngle;
     ws3*=direction;
 
-    angleitize(oldwa4,wa4);
+    angleOptimize(oldwa4,wa4);
     wa4=outputAngle;
     ws4*=direction;
 
@@ -154,10 +156,38 @@ class Robot : public frc::TimedRobot {
   }                             
 
   //***************************************************Angle Optimization Algorithm**************************************************
-  void angleitize(double current, double desired){
+  void angleOptimize(double current, double desired){
+    double current2 = current;
+
+
+
+    while (abs(current2) > 4096) {
+		  if(current2<0){
+			  current2 += 4096;
+		  }
+		  else {
+			  current2 -= 4096;
+		  }
+		
+	  }
+
+	  if ((abs(current2) >= 2048)&&(abs(current2)!=4096)) {
+		  if (current2 < 0) {
+			  current2 = 2048 + fmod(current2, 2048);
+		  }
+		  else {
+			  current2 = -2048 + fmod(current2, 2048);
+		  }
+	  }
+	  else {
+		  current2 = fmod(current2, 2048);
+	  }
+
+
+
 	  direction = 1;
-	  angle1 = (desired - (fmod(current,4096)));
-  	angle2 = ((2048 - abs(fmod(desired,4096))) + (2048 - abs(fmod(current,4096))));
+	  angle1 = (desired - current2);
+  	angle2 = ((2048 - abs(fmod(desired,4096))) + (2048 - abs(current2)));
 
   	if (abs(angle1) <= abs(angle2)) {
   		shortest = angle1;
@@ -167,47 +197,47 @@ class Robot : public frc::TimedRobot {
   		shortest = angle2;
   		check1 = true;
   	}
-
-	angle1 = ((desired - 2048) - fmod(current,4096));
-	angle2 = ((2048 - (abs(fmod(desired,4096))-2048)) + (2048 - (abs(fmod(current,4096)))));
+  
+	  angle1 = ((desired - 2048) - current2);
+	  angle2 = ((2048 - (abs(fmod(desired,4096))-2048)) + (2048 - (abs(current2))));
 	
-	if (abs(angle2) < abs(angle1)) {
-		shortest2 = angle2;
-		check2 = true;
-	}
-	else {
-		shortest2 = angle1;
-		check2 = false;
-	}
+	  if (abs(angle2) < abs(angle1)) {
+		  shortest2 = angle2;
+		  check2 = true;
+	  }
+	  else {
+		  shortest2 = angle1;
+		  check2 = false;
+	  }
 
-	if (abs(shortest) <= abs(shortest2)) {
-		if (check1 == true) {
-			if (current < 0) {
-				current -= shortest;
-			}
-			else {
-				current += shortest;
-			}
-		}
-		else {
-			current += shortest;
-		}
-	}
-	else {
-		direction = -1;
-		if (check2 == true) {
-			if (current < 0) {
-				current -= shortest2;
-			}
-			else {
-				current += shortest2;
-			}
-		}
-		else {
-			current += shortest2;
-		}
-	}
-  outputAngle = current;
+	  if (abs(shortest) <= abs(shortest2)) {
+		  if (check1 == true) {
+			  if (current < 0) {
+				  current -= shortest;
+			  }
+			  else {
+				  current += shortest;
+			  }
+		  }
+		  else {
+			  current += shortest;
+		  }
+	  }
+	  else {
+		  direction = -1;
+		  if (check2 == true) {
+			  if (current < 0) {
+				  current -= shortest2;
+			  }
+			  else {
+				  current += shortest2;
+		  	}
+		  } 
+		  else {
+			  current += shortest2;
+	  	}
+	  }
+    outputAngle = current;
   }
 
   private:

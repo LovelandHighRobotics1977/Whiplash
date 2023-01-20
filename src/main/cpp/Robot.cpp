@@ -129,7 +129,9 @@ void Robot::TeleopPeriodic() {
   if((forward<.2)&&(forward>-.2)){forward = 0;}
   if((strafe<.2)&&(strafe>-.2)){strafe = 0;}
   if((rotate<.2)&&(rotate>-.2)){rotate = 0;}
-  std::cout<<"FWD0 "<< forward <<" STR0 "<< strafe <<" RCW0 "<< rotate<< std::endl;
+  if(m_driverController.GetYButton() == 1){
+    ahrs->ZeroYaw();
+  }
   drive(forward, strafe, rotate);
 }
 
