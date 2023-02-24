@@ -13,6 +13,12 @@ void Robot::RobotInit() {
   m_fra.SetNeutralMode(NeutralMode::Brake);
   m_rla.SetNeutralMode(NeutralMode::Brake);
   m_fra.SetNeutralMode(NeutralMode::Brake);
+  m_armAngle.SetNeutralMode(NeutralMode::Brake);
+
+  /*m_rrd.SetNeutralMode(NeutralMode::Brake);
+  m_frd.SetNeutralMode(NeutralMode::Brake);
+  m_rld.SetNeutralMode(NeutralMode::Brake);
+  m_frd.SetNeutralMode(NeutralMode::Brake);*/
 
 
 
@@ -92,6 +98,73 @@ void Robot::RobotInit() {
 
 
 
+  //********************************Configure Rear Right Drive Motor********************************
+  /*m_rrd.ConfigFactoryDefault();
+
+  m_rrd.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
+
+  m_rrd.Config_kP(0, 0.01);
+  m_rrd.Config_kI(0, 0);
+  m_rrd.Config_kD(0, 0.8);
+  m_rrd.Config_kF(0, 1);
+
+  m_rrd.ConfigNominalOutputForward(0);
+	m_rrd.ConfigNominalOutputReverse(0);
+	m_rrd.ConfigPeakOutputForward(1);
+	m_rrd.ConfigPeakOutputReverse(-1);
+
+
+
+  //********************************Configure Rear Right Drive Motor********************************
+  m_rld.ConfigFactoryDefault();
+
+  m_rld.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
+
+  m_rld.Config_kP(0, 0.01);
+  m_rld.Config_kI(0, 0);
+  m_rld.Config_kD(0, 0.8);
+  m_rld.Config_kF(0, 1);
+
+  m_rld.ConfigNominalOutputForward(0);
+	m_rld.ConfigNominalOutputReverse(0);
+	m_rld.ConfigPeakOutputForward(1);
+	m_rld.ConfigPeakOutputReverse(-1);
+
+
+
+  //********************************Configure Rear Right Drive Motor********************************
+  m_frd.ConfigFactoryDefault();
+
+  m_frd.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
+
+  m_frd.Config_kP(0, 0.01);
+  m_frd.Config_kI(0, 0);
+  m_frd.Config_kD(0, 0.8);
+  m_frd.Config_kF(0, 1);
+
+  m_frd.ConfigNominalOutputForward(0);
+	m_frd.ConfigNominalOutputReverse(0);
+	m_frd.ConfigPeakOutputForward(1);
+	m_frd.ConfigPeakOutputReverse(-1);
+
+
+
+  //********************************Configure Rear Right Drive Motor********************************
+  m_fld.ConfigFactoryDefault();
+
+  m_fld.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
+
+  m_fld.Config_kP(0, 0.01);
+  m_fld.Config_kI(0, 0);
+  m_fld.Config_kD(0, 0.8);
+  m_fld.Config_kF(0, 1);
+
+  m_fld.ConfigNominalOutputForward(0);
+	m_fld.ConfigNominalOutputReverse(0);
+	m_fld.ConfigPeakOutputForward(1);
+	m_fld.ConfigPeakOutputReverse(-1);*/
+
+
 
   //********************************Configure Cancoder Magnet Offsets**************************
   m_flsensor.ConfigMagnetOffset(100);
@@ -114,25 +187,43 @@ void Robot::RobotInit() {
 void Robot::RobotPeriodic() {}
 
 void Robot::AutonomousInit() {}
-void Robot::AutonomousPeriodic() {}
+void Robot::AutonomousPeriodic() {
+  
+
+
+}
 
 void Robot::TeleopInit() {
   //timer.Reset();
   //timer.Start();
 }
 void Robot::TeleopPeriodic() {
-  double forward = -m_driverController.GetRightY();
-  double strafe =  m_driverController.GetRightX();
+
+  arm(m_driverController.GetXButton(), m_driverController.GetBButton());
+
+  double forward = m_driverController.GetRightY();
+  double strafe =  -m_driverController.GetRightX();
   double rotate = m_driverController.GetLeftX();
+
+  /*double forward = -m_joystick.GetY();
+  double strafe =  m_joystick.GetX();
+  double rotate = m_joystick.GetTwist();*/
 
   //********Controller Deadzones********
   if((forward<.2)&&(forward>-.2)){forward = 0;}
   if((strafe<.2)&&(strafe>-.2)){strafe = 0;}
   if((rotate<.2)&&(rotate>-.2)){rotate = 0;}
-  if(m_driverController.GetYButton() == 1){
+  if(m_driverController.GetAButton() == 1){
     ahrs->ZeroYaw();
   }
   drive(forward, strafe, rotate);
+  /*if(m_driverController.GetAButton() == 1){
+    m_rrd.Set(TalonFXControlMode::Velocity, 100);
+  }else{
+    m_rrd.Set(TalonFXControlMode::Velocity, 0);
+  }*/
+  //std::cout<<"Roll: "<<ahrs->GetRoll()<<" Pitch: "<<ahrs->GetPitch()<<std::endl;
+  std::cout<<ahrs->GetDisplacementX()<<std::endl;
 }
 
 void Robot::DisabledInit() {}
