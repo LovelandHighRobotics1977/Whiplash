@@ -16,8 +16,7 @@ void Robot::RobotInit() {
   m_fra.SetNeutralMode(NeutralMode::Brake);
   arm_angle.SetNeutralMode(NeutralMode::Brake);
   arm_extend.SetNeutralMode(NeutralMode::Brake);
-  p_solenoid.Set(frc::DoubleSolenoid::Value::kForward);
-
+  p_solenoidA.Set(frc::DoubleSolenoid::Value::kForward);
   /*m_rrd.SetNeutralMode(NeutralMode::Brake);
   m_frd.SetNeutralMode(NeutralMode::Brake);
   m_rld.SetNeutralMode(NeutralMode::Brake);
@@ -25,7 +24,7 @@ void Robot::RobotInit() {
 
   //****************************************************************    Configure Rear Right Angle Motor
   m_rra.ConfigFactoryDefault();
-  m_rra.ConfigRemoteFeedbackFilter(5, RemoteSensorSource(13), 0, 0);
+  m_rra.ConfigRemoteFeedbackFilter(11, RemoteSensorSource(13), 0, 0);
   m_rra.ConfigSelectedFeedbackSensor(FeedbackDevice::RemoteSensor0, 0, 0); // PIDLoop=0, timeoutMs=0
 
   m_rra.Config_kP(0, 1.7);
@@ -41,7 +40,7 @@ void Robot::RobotInit() {
 
   //****************************************************************    Configure Front Right Angle Motor
   m_fra.ConfigFactoryDefault();
-  m_fra.ConfigRemoteFeedbackFilter(2, RemoteSensorSource(13), 0, 0);
+  m_fra.ConfigRemoteFeedbackFilter(5, RemoteSensorSource(13), 0, 0);
   m_fra.ConfigSelectedFeedbackSensor(FeedbackDevice::RemoteSensor0, 0, 0); // PIDLoop=0, timeoutMs=0
 
   m_fra.Config_kP(0, 1.7);
@@ -57,7 +56,7 @@ void Robot::RobotInit() {
 
   //****************************************************************    Configure Rear Left Angle Motor
   m_rla.ConfigFactoryDefault();
-  m_rla.ConfigRemoteFeedbackFilter(1, RemoteSensorSource(13), 0, 0);
+  m_rla.ConfigRemoteFeedbackFilter(8, RemoteSensorSource(13), 0, 0);
   m_rla.ConfigSelectedFeedbackSensor(FeedbackDevice::RemoteSensor0, 0, 0); // PIDLoop=0, timeoutMs=0
 
   m_rla.Config_kP(0, 1.7);
@@ -73,7 +72,7 @@ void Robot::RobotInit() {
 
   //****************************************************************    Configure Front Left Angle Motor
   m_fla.ConfigFactoryDefault();
-  m_fla.ConfigRemoteFeedbackFilter(3, RemoteSensorSource(13), 0, 0);
+  m_fla.ConfigRemoteFeedbackFilter(2, RemoteSensorSource(13), 0, 0);
   m_fla.ConfigSelectedFeedbackSensor(FeedbackDevice::RemoteSensor0, 0, 0); // PIDLoop=0, timeoutMs=0
 
   m_fla.Config_kP(0, 1.7);
@@ -175,13 +174,13 @@ void Robot::TeleopPeriodic() {
   if((rotate<.2)&&(rotate>-.2)){rotate = 0;}
 
   //****************    Control Functions
-  GrabberArm(m_driverController.GetLeftBumper(),m_driverController.GetRightBumper(),m_driverController.GetLeftTriggerAxis(),m_driverController.GetRightTriggerAxis());
-  ClawPosition(m_driverController.GetAButton());
+  GrabberArm(m_driverController.GetLeftBumper(),m_driverController.GetRightBumper(),m_driverController.GetRightTriggerAxis(),m_driverController.GetLeftTriggerAxis());
+  ClawPosition(m_driverController.GetAButtonPressed());
   TeleDrive(forward, strafe, rotate);
 
   if(m_driverController.GetYButton()==1){ahrs->ZeroYaw();}
 
-  std::cout<<ahrs->GetDisplacementX()<<std::endl;
+
 }
 
 void Robot::DisabledInit() {}

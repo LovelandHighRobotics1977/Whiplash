@@ -19,6 +19,7 @@
 #include <frc/smartdashboard/SmartDashboard.h>
 #include <frc/DoubleSolenoid.h>
 #include <frc/Compressor.h>
+#include <frc/Solenoid.h>
 
 #include "networktables/NetworkTable.h"
 #include "networktables/NetworkTableInstance.h"
@@ -234,13 +235,13 @@ class Robot : public frc::TimedRobot {
   }
 
   //****************************************************************    Arm control loop
-  void GrabberArm(int in, int out, float up, float down){
-    arm_extend.Set(0.2*(in-out));
+  void GrabberArm(int out, int in, float down, float up){
+    arm_extend.Set(0.5*(in-out));
 
     if((down>0) && (up==0)){
-      arm_angle.Set(.3);
+      arm_angle.Set(.2);
     }else if((up>0) && (down==0)){
-      arm_angle.Set(-.3);
+      arm_angle.Set(-.2);
     }else{
       arm_angle.Set(0);
     }
@@ -248,7 +249,15 @@ class Robot : public frc::TimedRobot {
 
   //****************************************************************    Claw pneumatics loop
   void ClawPosition(int toggleState){
-    p_solenoid.Toggle();
+    if(toggleState){
+      if(opened){
+        p_solenoidA.Set(frc::DoubleSolenoid::Value::kReverse);
+        opened=0;
+      }else{
+        p_solenoidA.Set(frc::DoubleSolenoid::Value::kForward);
+        opened=1;
+      }
+    }
   }
 
 //************************************************************************************************    Variables
@@ -273,11 +282,11 @@ class Robot : public frc::TimedRobot {
     WPI_TalonFX m_rrd{10};
     WPI_CANCoder m_rrsensor{11};
 
-    WPI_VictorSPX arm_extend{12};
+    WPI_TalonSRX arm_extend{12};
     WPI_TalonFX arm_angle{13};
 
-    frc::DoubleSolenoid p_solenoid{14, frc::PneumaticsModuleType::REVPH, 4, 5};
-    frc::Compressor p_compressor{14, frc::PneumaticsModuleType::REVPH};
+    frc::DoubleSolenoid p_solenoidA{14, frc::PneumaticsModuleType::CTREPCM, 4, 5};
+    frc::Compressor p_compressor{14, frc::PneumaticsModuleType::CTREPCM};
 
     AHRS *ahrs;
 
@@ -289,7 +298,7 @@ class Robot : public frc::TimedRobot {
     //wheelbase (from center of front wheel to center of back wheel)
     double L = 25.75;
     double W = 25.75;
-    double R = sqrt((L * L) + (W * W));;
+    double R = sqrt((L * L) + (W * W));
 
     //****************    Kinematics Variables
 	  double A;
@@ -331,4 +340,8 @@ class Robot : public frc::TimedRobot {
     double outputAngle;
 
     double disp = 0;
+
+    //****************    Pneumatics
+    bool opened;
+    
   };
