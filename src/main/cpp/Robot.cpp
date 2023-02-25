@@ -5,6 +5,7 @@
 #include "Robot.h"
 
 void Robot::RobotInit() {
+  //****************************************************************    Various Miscellanious Configurations
   m_rra.SetSensorPhase(true);
   m_fra.SetSensorPhase(true);
   m_rla.SetSensorPhase(true);
@@ -13,17 +14,16 @@ void Robot::RobotInit() {
   m_fra.SetNeutralMode(NeutralMode::Brake);
   m_rla.SetNeutralMode(NeutralMode::Brake);
   m_fra.SetNeutralMode(NeutralMode::Brake);
-  m_armAngle.SetNeutralMode(NeutralMode::Brake);
+  arm_angle.SetNeutralMode(NeutralMode::Brake);
+  arm_extend.SetNeutralMode(NeutralMode::Brake);
+  p_solenoid.Set(frc::DoubleSolenoid::Value::kForward);
 
   /*m_rrd.SetNeutralMode(NeutralMode::Brake);
   m_frd.SetNeutralMode(NeutralMode::Brake);
   m_rld.SetNeutralMode(NeutralMode::Brake);
   m_frd.SetNeutralMode(NeutralMode::Brake);*/
 
-
-
-
-  //********************************Configure Rear Right Angle Motor********************************
+  //****************************************************************    Configure Rear Right Angle Motor
   m_rra.ConfigFactoryDefault();
   m_rra.ConfigRemoteFeedbackFilter(5, RemoteSensorSource(13), 0, 0);
   m_rra.ConfigSelectedFeedbackSensor(FeedbackDevice::RemoteSensor0, 0, 0); // PIDLoop=0, timeoutMs=0
@@ -39,10 +39,7 @@ void Robot::RobotInit() {
 	m_rra.ConfigPeakOutputForward(1);
 	m_rra.ConfigPeakOutputReverse(-1);
 
-
-
-
-  //********************************Configure Front Right Angle Motor*******************************
+  //****************************************************************    Configure Front Right Angle Motor
   m_fra.ConfigFactoryDefault();
   m_fra.ConfigRemoteFeedbackFilter(2, RemoteSensorSource(13), 0, 0);
   m_fra.ConfigSelectedFeedbackSensor(FeedbackDevice::RemoteSensor0, 0, 0); // PIDLoop=0, timeoutMs=0
@@ -58,10 +55,7 @@ void Robot::RobotInit() {
 	m_fra.ConfigPeakOutputForward(1);
 	m_fra.ConfigPeakOutputReverse(-1);
 
-
-
-
-  //********************************Configure Rear Left Angle Motor*********************************
+  //****************************************************************    Configure Rear Left Angle Motor
   m_rla.ConfigFactoryDefault();
   m_rla.ConfigRemoteFeedbackFilter(1, RemoteSensorSource(13), 0, 0);
   m_rla.ConfigSelectedFeedbackSensor(FeedbackDevice::RemoteSensor0, 0, 0); // PIDLoop=0, timeoutMs=0
@@ -77,10 +71,7 @@ void Robot::RobotInit() {
 	m_rla.ConfigPeakOutputForward(1);
 	m_rla.ConfigPeakOutputReverse(-1);
 
-
-
-
-  //********************************Configure Front Left Angle Motor********************************
+  //****************************************************************    Configure Front Left Angle Motor
   m_fla.ConfigFactoryDefault();
   m_fla.ConfigRemoteFeedbackFilter(3, RemoteSensorSource(13), 0, 0);
   m_fla.ConfigSelectedFeedbackSensor(FeedbackDevice::RemoteSensor0, 0, 0); // PIDLoop=0, timeoutMs=0
@@ -96,77 +87,7 @@ void Robot::RobotInit() {
 	m_fla.ConfigPeakOutputForward(1);
 	m_fla.ConfigPeakOutputReverse(-1);
 
-
-
-  //********************************Configure Rear Right Drive Motor********************************
-  /*m_rrd.ConfigFactoryDefault();
-
-  m_rrd.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
-
-  m_rrd.Config_kP(0, 0.01);
-  m_rrd.Config_kI(0, 0);
-  m_rrd.Config_kD(0, 0.8);
-  m_rrd.Config_kF(0, 1);
-
-  m_rrd.ConfigNominalOutputForward(0);
-	m_rrd.ConfigNominalOutputReverse(0);
-	m_rrd.ConfigPeakOutputForward(1);
-	m_rrd.ConfigPeakOutputReverse(-1);
-
-
-
-  //********************************Configure Rear Right Drive Motor********************************
-  m_rld.ConfigFactoryDefault();
-
-  m_rld.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
-
-  m_rld.Config_kP(0, 0.01);
-  m_rld.Config_kI(0, 0);
-  m_rld.Config_kD(0, 0.8);
-  m_rld.Config_kF(0, 1);
-
-  m_rld.ConfigNominalOutputForward(0);
-	m_rld.ConfigNominalOutputReverse(0);
-	m_rld.ConfigPeakOutputForward(1);
-	m_rld.ConfigPeakOutputReverse(-1);
-
-
-
-  //********************************Configure Rear Right Drive Motor********************************
-  m_frd.ConfigFactoryDefault();
-
-  m_frd.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
-
-  m_frd.Config_kP(0, 0.01);
-  m_frd.Config_kI(0, 0);
-  m_frd.Config_kD(0, 0.8);
-  m_frd.Config_kF(0, 1);
-
-  m_frd.ConfigNominalOutputForward(0);
-	m_frd.ConfigNominalOutputReverse(0);
-	m_frd.ConfigPeakOutputForward(1);
-	m_frd.ConfigPeakOutputReverse(-1);
-
-
-
-  //********************************Configure Rear Right Drive Motor********************************
-  m_fld.ConfigFactoryDefault();
-
-  m_fld.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
-
-  m_fld.Config_kP(0, 0.01);
-  m_fld.Config_kI(0, 0);
-  m_fld.Config_kD(0, 0.8);
-  m_fld.Config_kF(0, 1);
-
-  m_fld.ConfigNominalOutputForward(0);
-	m_fld.ConfigNominalOutputReverse(0);
-	m_fld.ConfigPeakOutputForward(1);
-	m_fld.ConfigPeakOutputReverse(-1);*/
-
-
-
-  //********************************Configure Cancoder Magnet Offsets**************************
+  //*****************************************************************    Configure Cancoder Magnet Offsets
   m_flsensor.ConfigMagnetOffset(100);
   m_frsensor.ConfigMagnetOffset(110);
   m_rlsensor.ConfigMagnetOffset(250);
@@ -175,54 +96,91 @@ void Robot::RobotInit() {
   m_frsensor.SetPositionToAbsolute();
   m_rlsensor.SetPositionToAbsolute();
   m_rrsensor.SetPositionToAbsolute();
+  /*
+  //*****************************************************************    Configure Rear Right Drive Motor
+  m_rrd.ConfigFactoryDefault();
+  m_rrd.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
+  m_rrd.Config_kP(0, 0.01);
+  m_rrd.Config_kI(0, 0);
+  m_rrd.Config_kD(0, 0.8);
+  m_rrd.Config_kF(0, 1);
+  m_rrd.ConfigNominalOutputForward(0);
+	m_rrd.ConfigNominalOutputReverse(0);
+	m_rrd.ConfigPeakOutputForward(1);
+	m_rrd.ConfigPeakOutputReverse(-1);
 
+  //*****************************************************************    Configure Rear Left Drive Motor
+  m_rld.ConfigFactoryDefault();
+  m_rld.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
+  m_rld.Config_kP(0, 0.01);
+  m_rld.Config_kI(0, 0);
+  m_rld.Config_kD(0, 0.8);
+  m_rld.Config_kF(0, 1);
+  m_rld.ConfigNominalOutputForward(0);
+	m_rld.ConfigNominalOutputReverse(0);
+	m_rld.ConfigPeakOutputForward(1);
+	m_rld.ConfigPeakOutputReverse(-1);
 
+  //*****************************************************************    Configure Front Right Drive Motor
+  m_frd.ConfigFactoryDefault();
+  m_frd.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
+  m_frd.Config_kP(0, 0.01);
+  m_frd.Config_kI(0, 0);
+  m_frd.Config_kD(0, 0.8);
+  m_frd.Config_kF(0, 1);
+  m_frd.ConfigNominalOutputForward(0);
+	m_frd.ConfigNominalOutputReverse(0);
+	m_frd.ConfigPeakOutputForward(1);
+	m_frd.ConfigPeakOutputReverse(-1);
 
-
-  //********************************Configure the gyro board********************************
-  //ahrs = new AHRS(frc::SPI::Port::kMXP);    //if we use SPI to connect the gyro board, use this instead.        >>> SPI uses 6 wires, I2C uses 4 <<<
+  //*****************************************************************    Configure Front Left Drive Motor
+  m_fld.ConfigFactoryDefault();
+  m_fld.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
+  m_fld.Config_kP(0, 0.01);
+  m_fld.Config_kI(0, 0);
+  m_fld.Config_kD(0, 0.8);
+  m_fld.Config_kF(0, 1);
+  m_fld.ConfigNominalOutputForward(0);
+	m_fld.ConfigNominalOutputReverse(0);
+	m_fld.ConfigPeakOutputForward(1);
+	m_fld.ConfigPeakOutputReverse(-1);
+  */
+  //****************************************************************    Configure the gyro board
   ahrs = new AHRS(frc::I2C::Port::kMXP);
 
 }
 void Robot::RobotPeriodic() {}
 
 void Robot::AutonomousInit() {}
-void Robot::AutonomousPeriodic() {
-  
-
-
-}
+void Robot::AutonomousPeriodic() {}
 
 void Robot::TeleopInit() {
   //timer.Reset();
   //timer.Start();
 }
+
 void Robot::TeleopPeriodic() {
-
-  arm(m_driverController.GetXButton(), m_driverController.GetBButton());
-
+  //****************    Controller Inputs
   double forward = m_driverController.GetRightY();
-  double strafe =  -m_driverController.GetRightX();
+  double strafe = -m_driverController.GetRightX();
   double rotate = m_driverController.GetLeftX();
-
-  /*double forward = -m_joystick.GetY();
+  /*
+  double forward = -m_joystick.GetY();
   double strafe =  m_joystick.GetX();
-  double rotate = m_joystick.GetTwist();*/
-
-  //********Controller Deadzones********
+  double rotate = m_joystick.GetTwist();
+  */
+  //****************    Controller Deadzones
   if((forward<.2)&&(forward>-.2)){forward = 0;}
   if((strafe<.2)&&(strafe>-.2)){strafe = 0;}
   if((rotate<.2)&&(rotate>-.2)){rotate = 0;}
-  if(m_driverController.GetAButton() == 1){
-    ahrs->ZeroYaw();
-  }
-  drive(forward, strafe, rotate);
-  /*if(m_driverController.GetAButton() == 1){
-    m_rrd.Set(TalonFXControlMode::Velocity, 100);
-  }else{
-    m_rrd.Set(TalonFXControlMode::Velocity, 0);
-  }*/
-  //std::cout<<"Roll: "<<ahrs->GetRoll()<<" Pitch: "<<ahrs->GetPitch()<<std::endl;
+
+  //****************    Control Functions
+  GrabberArm(m_driverController.GetLeftBumper(),m_driverController.GetRightBumper(),m_driverController.GetLeftTriggerAxis(),m_driverController.GetRightTriggerAxis());
+  ClawPosition(m_driverController.GetAButton());
+  TeleDrive(forward, strafe, rotate);
+
+  if(m_driverController.GetYButton()==1){ahrs->ZeroYaw();}
+
   std::cout<<ahrs->GetDisplacementX()<<std::endl;
 }
 

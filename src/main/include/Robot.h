@@ -4,32 +4,35 @@
 
 #pragma once
 
+//************************************************************************************************    Include Libraries
+#include <iostream>
+#include <string>
+#include <chrono>
+#include <thread>
+#include <math.h>
+
+#include <ctre/Phoenix.h>
+
 #include <frc/TimedRobot.h>
 #include <frc/XboxController.h>
-#include <ctre/Phoenix.h>
-#include <iostream>
 #include <frc/Timer.h>
-#include <string>
-#include <frc/Solenoid.h>
 #include <frc/smartdashboard/SmartDashboard.h>
-#include "frc/smartdashboard/Smartdashboard.h"
+#include <frc/DoubleSolenoid.h>
+#include <frc/Compressor.h>
+
 #include "networktables/NetworkTable.h"
 #include "networktables/NetworkTableInstance.h"
 #include "networktables/NetworkTableEntry.h"
 #include "networktables/NetworkTableValue.h"
-#include <chrono>
-#include <thread>
-#include <math.h>
-#include <cameraserver/CameraServer.h>
+
 #include "AHRS.h"
-#include <iostream>
-#include <frc/joystick.h>
-//#include "frc/span"
 
+#include <cameraserver/CameraServer.h>
 
-
+//************************************************************************************************    Robot Code
 class Robot : public frc::TimedRobot {
  public:
+  //****************************************************************    Default robot functions
   void RobotInit() override;
   void RobotPeriodic() override;
 
@@ -45,119 +48,8 @@ class Robot : public frc::TimedRobot {
   void TestInit() override;
   void TestPeriodic() override;
 
-  //**************************************************************Drive Loop******************************************************
-  void drive(double FWD, double STR, double RCW){
-    yaw = ahrs->GetYaw();
-    double yaw2 = yaw;
-    if(yaw<0){
-      yaw2 += 360; 
-    }
-
-    yaw = (yaw * (M_PI/180));
-    yaw2 = (yaw2 * (M_PI/180));
-
-    double temp = ((FWD * cos(yaw2)) + (STR * sin(yaw)));
-    STR = (((-FWD) * sin(yaw)) + (STR * cos(yaw2)));
-    FWD = temp;
-    //std::cout<<"STR: "<<STR<<std::endl;
-
-
-    //********Setting ratios for wheel distance********
-    //wheelbase (from center of front wheel to center of back wheel) unit doesn't matter because these will only be used as ratios but works well with meters
-    //IMPORTANT!!!    THESE TWO NUMBERS ARE THE LENGTH AND WIDTH, THE EXACT VALUE DOES NOT MATTER IF THE FRAME IS SQUARE!!!    >>> MUST CHANGE "L" & "W" WITH NON-SQUARE FRAME <<<
-    L = 25.75;
-	  W = 25.75;
-
-	  R = sqrt((L * L) + (W * W));
-
-	  A = STR - RCW * (L / R);
-	  B = STR + RCW * (L / R);
-	  C = FWD - RCW * (W / R);
-	  D = FWD + RCW * (W / R);
-
-
-
-
-    //********Get wheel angles and speeds********
-	  ws1 = sqrt((B * B) + (C * C));
-	  wa1 = atan2(B, C) * 180 / M_PI;
-    wa1 *= conversionFactor;
-
-	  ws2 = sqrt((B * B) + (D * D));
-	  wa2 = atan2(B, D) * 180 / M_PI;
-    wa2 *= conversionFactor;
-
-	  ws3 = sqrt((A * A) + (D * D));
-	  wa3 = atan2(A, D) * 180 / M_PI;
-    wa3 *= conversionFactor;
-
-	  ws4 = sqrt((A * A) + (C * C));
-	  wa4 = atan2(A, C) * 180 / M_PI;
-    wa4 *= conversionFactor;
-
-
-
-
-    //*********Optimize wheel angles********
-    angleOptimize(oldwa1,wa1);
-    wa1=outputAngle;
-    ws1*=direction;
-
-    angleOptimize(oldwa2,wa2);
-    wa2=outputAngle;
-    ws2*=direction;
-
-    angleOptimize(oldwa3,wa3);
-    wa3=outputAngle;
-    ws3*=direction;
-
-    angleOptimize(oldwa4,wa4);
-    wa4=outputAngle;
-    ws4*=direction;
-
-
-
-    //********Set max speed********
-	  double max = ws1;
-	  if (ws2 > max)max = ws2;
-	  if (ws3 > max)max = ws3;
-	  if (ws4 > max)max = ws4;
-	  if (max > 1) { ws1 /= max; ws2 /= max; ws3 /= max; ws4 /= max; }
-
-
-
-
-    //********Set angle motor position********
-    m_rra.Set(TalonFXControlMode::Position, wa4);
-    m_fra.Set(TalonFXControlMode::Position, wa1);
-    m_rla.Set(TalonFXControlMode::Position, wa3);
-    m_fla.Set(TalonFXControlMode::Position, wa2);
-
-
-
-
-    //********Set old angles********
-    oldwa1 = wa1;
-    oldwa2 = wa2;
-    oldwa3 = wa3;
-    oldwa4 = wa4;
-
-
-
-
-    //********Drive Speed!********
-    double PercentOut = -0.3; // must be negative
-
-
-    //********Set Drive Motors********
-    m_frd.Set(PercentOut*ws1);
-    m_fld.Set(PercentOut*ws2);
-    m_rld.Set(PercentOut*ws3);
-    m_rrd.Set(PercentOut*ws4);
-  }                             
-
-  //***************************************************Angle Optimization Algorithm**************************************************
-  void angleOptimize(double current, double desired){
+  //****************************************************************    Angle optimization algorithm
+  void AngleOptimize(double current, double desired){
     double current2 = current;
 
     while (abs(current2) >= 4096) {
@@ -248,11 +140,12 @@ class Robot : public frc::TimedRobot {
     outputAngle = current;
   }
 
-  void AutoDrive(double FWD, double STR, double RCW, double speed){
+  //****************************************************************    Drive common code
+  void DriveCommon(double FWD, double STR, double RCW){
     yaw = ahrs->GetYaw();
     double yaw2 = yaw;
     if(yaw<0){
-      yaw2 += 360; 
+      yaw2 += 360;
     }
 
     yaw = (yaw * (M_PI/180));
@@ -261,26 +154,13 @@ class Robot : public frc::TimedRobot {
     double temp = ((FWD * cos(yaw2)) + (STR * sin(yaw)));
     STR = (((-FWD) * sin(yaw)) + (STR * cos(yaw2)));
     FWD = temp;
-    //std::cout<<"STR: "<<STR<<std::endl;
 
-
-    //********Setting ratios for wheel distance********
-    //wheelbase (from center of front wheel to center of back wheel) unit doesn't matter because these will only be used as ratios but works well with meters
-    //IMPORTANT!!!    THESE TWO NUMBERS ARE THE LENGTH AND WIDTH, THE EXACT VALUE DOES NOT MATTER IF THE FRAME IS SQUARE!!!    >>> MUST CHANGE "L" & "W" WITH NON-SQUARE FRAME <<<
-    L = 25.75;
-	  W = 25.75;
-
-	  R = sqrt((L * L) + (W * W));
-
-	  A = STR - RCW * (L / R);
+    //****************    Set wheel angles and speeds
+    A = STR - RCW * (L / R);
 	  B = STR + RCW * (L / R);
 	  C = FWD - RCW * (W / R);
 	  D = FWD + RCW * (W / R);
 
-
-
-
-    //********Set wheel angles and speeds********
 	  ws1 = sqrt((B * B) + (C * C));
 	  wa1 = atan2(B, C) * 180 / M_PI;
     wa1 *= conversionFactor;
@@ -297,109 +177,121 @@ class Robot : public frc::TimedRobot {
 	  wa4 = atan2(A, C) * 180 / M_PI;
     wa4 *= conversionFactor;
 
-
-
-
-    //*********Optimize wheel angles********
-    angleOptimize(oldwa1,wa1);
+    //****************    Optimize wheel angles
+    AngleOptimize(oldwa1,wa1);
     wa1=outputAngle;
     ws1*=direction;
 
-    angleOptimize(oldwa2,wa2);
+    AngleOptimize(oldwa2,wa2);
     wa2=outputAngle;
     ws2*=direction;
 
-    angleOptimize(oldwa3,wa3);
+    AngleOptimize(oldwa3,wa3);
     wa3=outputAngle;
     ws3*=direction;
 
-    angleOptimize(oldwa4,wa4);
+    AngleOptimize(oldwa4,wa4);
     wa4=outputAngle;
     ws4*=direction;
 
-
-
-    //********Set max speed********
+    //****************    Set max speed
 	  double max = ws1;
 	  if (ws2 > max)max = ws2;
 	  if (ws3 > max)max = ws3;
 	  if (ws4 > max)max = ws4;
 	  if (max > 1) { ws1 /= max; ws2 /= max; ws3 /= max; ws4 /= max; }
 
-
-
-
-    //********Set angle motor position********
+    //****************    Set angle motor position
     m_rra.Set(TalonFXControlMode::Position, wa4);
     m_fra.Set(TalonFXControlMode::Position, wa1);
     m_rla.Set(TalonFXControlMode::Position, wa3);
     m_fla.Set(TalonFXControlMode::Position, wa2);
 
-
-
-
-    //********Set old angles********
+    //****************    Set old angles
     oldwa1 = wa1;
     oldwa2 = wa2;
     oldwa3 = wa3;
     oldwa4 = wa4;
+  }                             
 
-
-
-
-    //********Drive Speed!********
-    double PercentOut = -0.3; // must be negative
-
-
-    //********Set Drive Motors********
+  //****************************************************************    Autonomous drive loop
+  void AutoDrive(double FWD, double STR, double RCW, double speed){
+    DriveCommon(FWD,STR,RCW);
     m_frd.Set(TalonFXControlMode::Velocity, (-speed*ws1));
     m_fld.Set(TalonFXControlMode::Velocity, (-speed*ws2));
     m_rld.Set(TalonFXControlMode::Velocity, (-speed*ws3));
     m_rrd.Set(TalonFXControlMode::Velocity, (-speed*ws4));
   }
 
-  void arm(int a, int b){
-    if((a == 1)&&(b == 0)){
-        m_armAngle.Set(.3);
-    }else if((a==0)&&(b==1)){
-        m_armAngle.Set(-.3);
+  //****************************************************************    Teleoperated drive loop
+  void TeleDrive(double FWD, double STR, double RCW){
+    DriveCommon(FWD,STR,RCW);
+    double PercentOut = -0.3; // must be negative
+    m_frd.Set(PercentOut*ws1);
+    m_fld.Set(PercentOut*ws2);
+    m_rld.Set(PercentOut*ws3);
+    m_rrd.Set(PercentOut*ws4);
+  }
+
+  //****************************************************************    Arm control loop
+  void GrabberArm(int in, int out, float up, float down){
+    arm_extend.Set(0.2*(in-out));
+
+    if((down>0) && (up==0)){
+      arm_angle.Set(.3);
+    }else if((up>0) && (down==0)){
+      arm_angle.Set(-.3);
     }else{
-        m_armAngle.Set(0);
+      arm_angle.Set(0);
     }
   }
 
+  //****************************************************************    Claw pneumatics loop
+  void ClawPosition(int toggleState){
+    p_solenoid.Toggle();
+  }
+
+//************************************************************************************************    Variables
   private:
-    //********************************************************CONTROLLERS********************************************************
+  //****************************************************************    CONTROLLERS
     frc::XboxController m_driverController{0};
-    //frc::Joystick m_joystick{0};
-
-    //****************************************************MOTORS AND ENCODERS****************************************************
-    WPI_TalonFX m_fra{9};
-    WPI_TalonFX m_frd{11};
-    WPI_TalonFX m_armAngle{6};
-
-    WPI_TalonFX m_rra{12};
-    WPI_TalonFX m_rrd{10};
-
+    
+  //****************************************************************    Instancing CAN devices and sensors
     WPI_TalonFX m_fla{0};
-    WPI_TalonFX m_fld{5};
+    WPI_TalonFX m_fld{1};
+    WPI_CANCoder m_flsensor{2};
+    
+    WPI_TalonFX m_fra{3};
+    WPI_TalonFX m_frd{4};
+    WPI_CANCoder m_frsensor{5};
 
-    WPI_TalonFX m_rla{15};
-    WPI_TalonFX m_rld{18};
+    WPI_TalonFX m_rla{6};
+    WPI_TalonFX m_rld{7};
+    WPI_CANCoder m_rlsensor{8};
 
+    WPI_TalonFX m_rra{9};
+    WPI_TalonFX m_rrd{10};
+    WPI_CANCoder m_rrsensor{11};
 
-    WPI_CANCoder m_rrsensor{18};
-    WPI_CANCoder m_frsensor{2};
-    WPI_CANCoder m_rlsensor{1};
-    WPI_CANCoder m_flsensor{3};
+    WPI_VictorSPX arm_extend{12};
+    WPI_TalonFX arm_angle{13};
 
-    //****************************************************SWERVE DRIVE VARIABLES****************************************************
+    frc::DoubleSolenoid p_solenoid{14, frc::PneumaticsModuleType::REVPH, 4, 5};
+    frc::Compressor p_compressor{14, frc::PneumaticsModuleType::REVPH};
+
+    AHRS *ahrs;
+
+  //****************************************************************    SWERVE DRIVE VARIABLES
+    //****************    Conversion Factor
     double conversionFactor = 4096.0/ 360.0;
 
-    double L;
-    double W;
-    double R;
+    //****************    Frame Ratios
+    //wheelbase (from center of front wheel to center of back wheel)
+    double L = 25.75;
+    double W = 25.75;
+    double R = sqrt((L * L) + (W * W));;
 
+    //****************    Kinematics Variables
 	  double A;
     double B;
     double C;
@@ -407,31 +299,36 @@ class Robot : public frc::TimedRobot {
 
     double ws1;
     double wa1;
+    double oldwa1;
+
     double ws2;
     double wa2;
+    double oldwa2;
+
     double ws3;
     double wa3;
+    double oldwa3;
+
     double ws4;
     double wa4;
-
-    double oldwa1;
-    double oldwa2;
-    double oldwa3;
     double oldwa4;
 
-    //****************************************************NAVX-MXP (Gyro board)***************************************
-    AHRS *ahrs;
+    //****************    NAVX-MXP (Gyro board)
     double yaw;
 
-    //*********************************************Swerve Drive Optimization******************************************
+    //****************    Swerve Drive Optimization
     double direction;
+
     double angle1;
   	double angle2;
+
   	double shortest;
-  	bool check1;
     double shortest2;
+
+  	bool check1;
 	  bool check2;
 
     double outputAngle;
+
     double disp = 0;
   };
