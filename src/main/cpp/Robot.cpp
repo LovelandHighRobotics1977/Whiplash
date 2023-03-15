@@ -14,8 +14,14 @@ void Robot::RobotInit() {
   m_fra.SetNeutralMode(NeutralMode::Brake);
   m_rla.SetNeutralMode(NeutralMode::Brake);
   m_fra.SetNeutralMode(NeutralMode::Brake);
+
+  m_rrd.SetNeutralMode(NeutralMode::Brake);
+  m_frd.SetNeutralMode(NeutralMode::Brake);
+  m_rld.SetNeutralMode(NeutralMode::Brake);
+  m_frd.SetNeutralMode(NeutralMode::Brake);
+
   arm_angle.SetNeutralMode(NeutralMode::Brake);
-  arm_extend.SetNeutralMode(NeutralMode::Brake);
+  arm_extend.SetIdleMode(rev::CANSparkMax::IdleMode::kBrake);
   p_solenoidA.Set(frc::DoubleSolenoid::Value::kForward);
   /*m_rrd.SetNeutralMode(NeutralMode::Brake);
   m_frd.SetNeutralMode(NeutralMode::Brake);
@@ -95,8 +101,8 @@ void Robot::RobotInit() {
   m_frsensor.SetPositionToAbsolute();
   m_rlsensor.SetPositionToAbsolute();
   m_rrsensor.SetPositionToAbsolute();
-  /*
-  //*****************************************************************    Configure Rear Right Drive Motor
+  
+  //-*****************************************************************    Configure Rear Right Drive Motor
   m_rrd.ConfigFactoryDefault();
   m_rrd.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
   m_rrd.Config_kP(0, 0.01);
@@ -107,8 +113,7 @@ void Robot::RobotInit() {
 	m_rrd.ConfigNominalOutputReverse(0);
 	m_rrd.ConfigPeakOutputForward(1);
 	m_rrd.ConfigPeakOutputReverse(-1);
-
-  //*****************************************************************    Configure Rear Left Drive Motor
+  //-*****************************************************************    Configure Rear Left Drive Motor
   m_rld.ConfigFactoryDefault();
   m_rld.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
   m_rld.Config_kP(0, 0.01);
@@ -119,8 +124,7 @@ void Robot::RobotInit() {
 	m_rld.ConfigNominalOutputReverse(0);
 	m_rld.ConfigPeakOutputForward(1);
 	m_rld.ConfigPeakOutputReverse(-1);
-
-  //*****************************************************************    Configure Front Right Drive Motor
+  //-*****************************************************************    Configure Front Right Drive Motor
   m_frd.ConfigFactoryDefault();
   m_frd.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
   m_frd.Config_kP(0, 0.01);
@@ -131,8 +135,7 @@ void Robot::RobotInit() {
 	m_frd.ConfigNominalOutputReverse(0);
 	m_frd.ConfigPeakOutputForward(1);
 	m_frd.ConfigPeakOutputReverse(-1);
-
-  //*****************************************************************    Configure Front Left Drive Motor
+  //-*****************************************************************    Configure Front Left Drive Motor
   m_fld.ConfigFactoryDefault();
   m_fld.ConfigSelectedFeedbackSensor(FeedbackDevice::IntegratedSensor, 0, 0);
   m_fld.Config_kP(0, 0.01);
@@ -143,42 +146,87 @@ void Robot::RobotInit() {
 	m_fld.ConfigNominalOutputReverse(0);
 	m_fld.ConfigPeakOutputForward(1);
 	m_fld.ConfigPeakOutputReverse(-1);
-  */
-  //****************************************************************    Configure the gyro board
-  ahrs = new AHRS(frc::I2C::Port::kMXP);
-
+  //-****************************************************************    Configure the gyro board
+  //ahrs = new AHRS(frc::I2C::Port::kMXP);
+  ahrs = new AHRS(frc::SerialPort::Port::kUSB1);
+  
 }
 void Robot::RobotPeriodic() {}
 
-void Robot::AutonomousInit() {}
-void Robot::AutonomousPeriodic() {}
-
-void Robot::TeleopInit() {
-  //timer.Reset();
-  //timer.Start();
+void Robot::AutonomousInit() {
+  ahrs->ZeroYaw();
+  AutoDrive(0,0,0,0);
 }
+void Robot::AutonomousPeriodic() {
+  //GrabberArm(0,0,0,0,1);
+
+  /*if(testing == true){
+  driveDistance(2.5, 100, 1);
+  driveDistance(2.5, 200, 1);
+  driveDistance(2.5, 300, 1);
+  driveDistance(2.5, 400, 1);
+  driveDistance(2.5, 500, 1);
+  driveDistance(2.5, 600, 1);
+  driveDistance(80, 1000, 1);
+  driveDistance(2.5, 600, 1);
+  driveDistance(2.5, 500, 1);
+  driveDistance(2.5, 400, 1);
+  driveDistance(2.5, 300, 1);
+  driveDistance(2.5, 200, 1);
+  driveDistance(2.5, 100, 1);
+  testing = false;
+  }*/
+
+  //experimental auto balance
+  if((ahrs->GetPitch() <= 10)&&(testing == true)){
+    AutoDrive(1,0,.01,100);
+  }
+
+  if(ahrs->GetPitch() >= 10){
+    testing = false;
+  }
+  
+  if(ahrs->GetPitch() >= 1){
+    AutoDrive(1,0,.01,50);
+  }
+  if(ahrs->GetPitch() <= -1){
+    AutoDrive(1,0,.01,50);
+  }
+  if((ahrs->GetPitch() <= 1)&&(ahrs->GetPitch() >= -1)){
+    AutoDrive(0,0,0,0);
+  }
+}
+
+void Robot::TeleopInit() {}
 
 void Robot::TeleopPeriodic() {
   //****************    Controller Inputs
-  double forward = m_driverController.GetRightY();
-  double strafe = -m_driverController.GetRightX();
-  double rotate = m_driverController.GetLeftX();
-  /*
-  double forward = -m_joystick.GetY();
-  double strafe =  m_joystick.GetX();
-  double rotate = m_joystick.GetTwist();
-  */
+  
+  /*double forward = m_driverController.GetRightX();
+  double strafe = m_driverController.GetRightY();
+  double rotate = -m_driverController.GetLeftX();*/
+  
+  double forward = -m_Joystick.GetY();
+  double strafe =  m_Joystick.GetX();
+  double rotate = -m_Joystick.GetTwist();
+  double throttle = m_Joystick.GetThrottle();
+
+  throttle += 1;
+  throttle = throttle/2;
+  
   //****************    Controller Deadzones
   if((forward<.2)&&(forward>-.2)){forward = 0;}
   if((strafe<.2)&&(strafe>-.2)){strafe = 0;}
   if((rotate<.2)&&(rotate>-.2)){rotate = 0;}
 
   //****************    Control Functions
-  GrabberArm(m_driverController.GetLeftBumper(),m_driverController.GetRightBumper(),m_driverController.GetRightTriggerAxis(),m_driverController.GetLeftTriggerAxis());
-  ClawPosition(m_driverController.GetAButtonPressed());
-  TeleDrive(forward, strafe, rotate);
+  GrabberArm(m_driverController.GetRightBumper(),m_driverController.GetLeftBumper(),m_driverController.GetRightTriggerAxis(),m_driverController.GetLeftTriggerAxis(),m_driverController.GetBackButton());
+  //ClawPosition(m_driverController.GetAButtonPressed());
+  TeleDrive(forward, strafe, rotate, throttle);
+  intake(m_driverController.GetAButton(),m_driverController.GetBButton());
 
-  if(m_driverController.GetYButton()==1){ahrs->ZeroYaw();}
+  if(m_Joystick.GetRawButton(3) == 1){ahrs->ZeroYaw();}
+  std::cout<<ahrs->GetPitch()<<std::endl;
 
 
 }

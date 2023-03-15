@@ -15,6 +15,7 @@
 
 #include <frc/TimedRobot.h>
 #include <frc/XboxController.h>
+#include <frc/Joystick.h>
 #include <frc/Timer.h>
 #include <frc/smartdashboard/SmartDashboard.h>
 #include <frc/DoubleSolenoid.h>
@@ -29,6 +30,8 @@
 #include "AHRS.h"
 
 #include <cameraserver/CameraServer.h>
+#include "rev/CANSparkMax.h"
+#include <frc/DigitalInput.h>
 
 //************************************************************************************************    Robot Code
 class Robot : public frc::TimedRobot {
@@ -51,6 +54,45 @@ class Robot : public frc::TimedRobot {
 
   //****************************************************************    Angle optimization algorithm
   void AngleOptimize(double current, double desired){
+    /*double current2 = fmod(current, 4096.0);
+    double desired2 = fmod(desired, 4096.0);
+
+    double difference = desired2 - current2;
+
+    if (difference > 2048.0) {
+        difference -= 4096.0;
+    }
+    else if (difference < -2048.0) {
+        difference += 4096.0;
+    }
+    
+    //checking opposite angle
+    double desiredOpposite;
+    if (desired <= 0) {
+        desiredOpposite = (2048 + desired);
+    }
+    else {
+        desiredOpposite = (desired - 2048);
+    }
+
+    desired2 = fmod(desiredOpposite, 4096.0);
+
+    double difference2 = desired2 - current2;
+
+    if (difference2 > 2048.0) {
+        difference2 -= 4096.0;
+    }
+    else if (difference2 < -2048.0) {
+        difference2 += 4096.0;
+    }
+
+    if (abs(difference) <= abs(difference2)) {
+        outputAngle = current + difference;
+    }
+    else {
+        direction = -1;
+        outputAngle = current + difference2;
+    }*/
     double current2 = current;
 
     while (abs(current2) >= 4096) {
@@ -218,32 +260,90 @@ class Robot : public frc::TimedRobot {
   //****************************************************************    Autonomous drive loop
   void AutoDrive(double FWD, double STR, double RCW, double speed){
     DriveCommon(FWD,STR,RCW);
-    m_frd.Set(TalonFXControlMode::Velocity, (-speed*ws1));
-    m_fld.Set(TalonFXControlMode::Velocity, (-speed*ws2));
-    m_rld.Set(TalonFXControlMode::Velocity, (-speed*ws3));
-    m_rrd.Set(TalonFXControlMode::Velocity, (-speed*ws4));
+    m_frd.Set(TalonFXControlMode::Velocity, (speed*ws1));
+    m_fld.Set(TalonFXControlMode::Velocity, (speed*ws2));
+    m_rld.Set(TalonFXControlMode::Velocity, (speed*ws3));
+    m_rrd.Set(TalonFXControlMode::Velocity, (speed*ws4));
+  }
+
+  void driveDistance(double distanceInInches, double speed, int direction = 0){
+    double baseSpeed = 12;
+    double speedScalar = speed/100.0;
+    double timeRequired = (distanceInInches/(baseSpeed*speedScalar));
+    
+    if(timeTest == false){
+      timer.Reset();
+      timer.Start();
+      timeTest = true;
+    }
+
+    while(  timer.Get() <= ((units::time::second_t) timeRequired)){
+      switch(direction){
+      case 0:
+        AutoDrive(1,0,0.01,speed);
+        break;
+      case 1:
+        AutoDrive(0,1,0.01,speed);
+        break;
+      case 2:
+        AutoDrive(-1,0,0.01,speed);
+        break;
+      case 3:
+        AutoDrive(0,-1,0.01,speed);
+        break;
+      }
+    }
+
+    AutoDrive(0,0,0,0);
+    
+    timeTest = false;
   }
 
   //****************************************************************    Teleoperated drive loop
-  void TeleDrive(double FWD, double STR, double RCW){
+  void TeleDrive(double FWD, double STR, double RCW, double throttle){
     DriveCommon(FWD,STR,RCW);
-    double PercentOut = -0.3; // must be negative
-    m_frd.Set(PercentOut*ws1);
-    m_fld.Set(PercentOut*ws2);
-    m_rld.Set(PercentOut*ws3);
-    m_rrd.Set(PercentOut*ws4);
+    double PercentOut = .75;
+    m_frd.Set(PercentOut*ws1*throttle);
+    m_fld.Set(PercentOut*ws2*throttle);
+    m_rld.Set(PercentOut*ws3*throttle);
+    m_rrd.Set(PercentOut*ws4*throttle);
   }
 
   //****************************************************************    Arm control loop
-  void GrabberArm(int out, int in, float down, float up){
-    arm_extend.Set(0.5*(in-out));
+  void GrabberArm(int out, int in, float down, float up, bool retract){
+    //std::cout<<(!armSwitch.Get())<<"    "<<(in==1)<<"    "<<(out == 0)<<std::endl;
+    if(retract == false){
+    if((!armSwitch.Get())&&(out == 0)&&(in == 1)){
+      arm_extend.Set(1);
+    }
+    else if((out == 1)&&(in == 0)){
+      arm_extend.Set(-1);
+    }else {
+      arm_extend.Set(0);
+    }
 
     if((down>0) && (up==0)){
-      arm_angle.Set(.2);
-    }else if((up>0) && (down==0)){
-      arm_angle.Set(-.2);
+      arm_angle.Set(.3 * down);
+    }else if((up>0) && (down==0)&&(!insideSwitch.Get())){
+      arm_angle.Set(-.3 * up);
     }else{
       arm_angle.Set(0);
+    }
+    }
+
+    if(retract == true){
+      if(!armSwitch.Get()){
+        arm_extend.Set(1);
+      }else{
+        arm_extend.Set(0);
+      }
+
+      if((!insideSwitch.Get())&&(armSwitch.Get())){
+        arm_angle.Set(-.2);
+      }else{
+        arm_angle.Set(0);
+      }
+
     }
   }
 
@@ -260,10 +360,15 @@ class Robot : public frc::TimedRobot {
     }
   }
 
+  void intake(int in, int out){
+    m_intake.Set(in-out);
+  }
+
 //************************************************************************************************    Variables
   private:
   //****************************************************************    CONTROLLERS
-    frc::XboxController m_driverController{0};
+    frc::XboxController m_driverController{1};
+    frc::Joystick m_Joystick{0};
     
   //****************************************************************    Instancing CAN devices and sensors
     WPI_TalonFX m_fla{0};
@@ -282,13 +387,19 @@ class Robot : public frc::TimedRobot {
     WPI_TalonFX m_rrd{10};
     WPI_CANCoder m_rrsensor{11};
 
-    WPI_TalonSRX arm_extend{12};
+    rev::CANSparkMax arm_extend{20, rev::CANSparkMax::MotorType::kBrushless};
+    //rev::CANSparkMax m_intake{21, rev::CANSparkMax::MotorType::kBrushless};
     WPI_TalonFX arm_angle{13};
+    WPI_TalonFX m_intake{15};
 
     frc::DoubleSolenoid p_solenoidA{14, frc::PneumaticsModuleType::CTREPCM, 4, 5};
+    //frc::Solenoid downSolenoid{frc::PneumaticsModuleType::CTREPCM, 4};
+    //frc::Solenoid upSolenoid{frc::PneumaticsModuleType::CTREPCM, 5};
     frc::Compressor p_compressor{14, frc::PneumaticsModuleType::CTREPCM};
 
     AHRS *ahrs;
+
+    frc::Timer timer;
 
   //****************************************************************    SWERVE DRIVE VARIABLES
     //****************    Conversion Factor
@@ -343,5 +454,10 @@ class Robot : public frc::TimedRobot {
 
     //****************    Pneumatics
     bool opened;
+    bool timeTest = false;
+    bool testing = true;
+
+    frc::DigitalInput insideSwitch {0};
+    frc::DigitalInput armSwitch {1};
     
   };
