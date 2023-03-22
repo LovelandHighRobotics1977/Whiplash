@@ -32,6 +32,7 @@
 #include <cameraserver/CameraServer.h>
 #include "rev/CANSparkMax.h"
 #include <frc/DigitalInput.h>
+#include <frc/Encoder.h>
 
 //************************************************************************************************    Robot Code
 class Robot : public frc::TimedRobot {
@@ -266,10 +267,11 @@ class Robot : public frc::TimedRobot {
     m_rrd.Set(TalonFXControlMode::Velocity, (speed*ws4));
   }
 
-  void driveDistance(double distanceInInches, double speed, int direction = 0){
+  void driveDistance(double distanceInInches, double speed, double orientationSet, int direction = 0){
     double baseSpeed = 12;
     double speedScalar = speed/100.0;
     double timeRequired = (distanceInInches/(baseSpeed*speedScalar));
+    double orientation = 0;
     
     if(timeTest == false){
       timer.Reset();
@@ -278,18 +280,27 @@ class Robot : public frc::TimedRobot {
     }
 
     while(  timer.Get() <= ((units::time::second_t) timeRequired)){
+      
+      if(abs(ahrs->GetAngle()) < orientationSet-2){
+        orientation = 0.1;
+      }else if(abs(ahrs->GetAngle()) > orientationSet+2){
+        orientation = -0.1;
+      }else{
+        orientation = 0;
+      }
+
       switch(direction){
       case 0:
-        AutoDrive(1,0,0.01,speed);
+        AutoDrive(1,0,orientation,speed);
         break;
       case 1:
-        AutoDrive(0,1,0.01,speed);
+        AutoDrive(0,1,orientation,speed);
         break;
       case 2:
-        AutoDrive(-1,0,0.01,speed);
+        AutoDrive(-1,0,orientation,speed);
         break;
       case 3:
-        AutoDrive(0,-1,0.01,speed);
+        AutoDrive(0,-1,orientation,speed);
         break;
       }
     }
@@ -347,6 +358,51 @@ class Robot : public frc::TimedRobot {
     }
   }
 
+  void autoArm(int position, bool enabled){
+    if(!enabled){
+      positionSpeed = .3;
+    }
+    if(enabled){
+    if(abs(arm_encoder.GetDistance()) < position-2){
+      arm_angle.Set(positionSpeed);
+    }else if(abs(arm_encoder.GetDistance()) > (position+2)){
+      arm_angle.Set(-positionSpeed);
+    }else if((abs(arm_encoder.GetDistance()) > (position-2))&&(abs(arm_encoder.GetDistance()) < (position+2))){
+      positionSpeed = .05;
+      arm_angle.Set(0);
+    }
+    }
+  }
+
+
+  bool score(){
+    while(running){
+    while(score1){
+    if(!score1){
+      positionSpeed = .4;
+      score1 = true;
+    }
+    if(score1){
+      if(abs(arm_encoder.GetDistance()) < 168){
+        arm_angle.Set(positionSpeed);
+      }else if(abs(arm_encoder.GetDistance()) > 172){
+        arm_angle.Set(-positionSpeed);
+      }else if((abs(arm_encoder.GetDistance()) > 168)&&(abs(arm_encoder.GetDistance()) < 172)){
+        positionSpeed = .05;
+        arm_angle.Set(0);
+        score1 = false;
+      }
+    }
+    }
+    m_intake.Set(-1);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    m_intake.Set(0);
+    //GrabberArm(0,0,0,0,1);
+    running = false;
+    }
+    stage1 = true;
+    return true;
+  }
   //****************************************************************    Claw pneumatics loop
   void ClawPosition(int toggleState){
     if(toggleState){
@@ -362,6 +418,53 @@ class Robot : public frc::TimedRobot {
 
   void intake(int in, int out){
     m_intake.Set(in-out);
+  }
+
+  void autoLevel(){
+    if(derivativeState){
+      timer.Reset();
+      angleDERIVATIVE = ahrs->GetPitch();
+      timer.Start();
+      derivativeState = false;
+    }else{
+      angleDERIVATIVE2 = ahrs->GetPitch();
+      derivative = ((angleDERIVATIVE2 - angleDERIVATIVE)/((double)timer.Get()));
+      derivativeState = true;
+   }
+
+    double angle = ahrs->GetPitch();
+    double kp = 7.5;
+    int kd = abs(derivative);
+    ki += angle;
+
+
+    if(testing == true){
+      AutoDrive(-1,0,.01,250);
+    }
+
+    if((angle >= 10)&&((angle <= 13))){
+      testing = false;
+      engaged = true;
+    }
+
+    if(engaged == true){
+      speed = (abs(angle*kp) - kd + (.002*ki));
+      if(speed >= 200){
+        speed = 200;
+      }
+
+      if(angle > 0){
+        AutoDrive(-1,0,.01,speed);
+        ki = 0;
+      }
+
+      if(angle < 0){
+        AutoDrive(1,0,.01,speed);
+      }
+      if((angle < -.2)&&(angle > .2)){
+        AutoDrive(0,0,0,0);
+      }
+    }
   }
 
 //************************************************************************************************    Variables
@@ -400,6 +503,7 @@ class Robot : public frc::TimedRobot {
     AHRS *ahrs;
 
     frc::Timer timer;
+    frc::Encoder arm_encoder{7, 8};
 
   //****************************************************************    SWERVE DRIVE VARIABLES
     //****************    Conversion Factor
@@ -451,11 +555,29 @@ class Robot : public frc::TimedRobot {
     double outputAngle;
 
     double disp = 0;
+    double positionSpeed = .3;
 
     //****************    Pneumatics
     bool opened;
+    int resetTimer = 0;
     bool timeTest = false;
     bool testing = true;
+    bool engaged = false;
+    bool delay = false;
+
+    int additional = 0;
+
+    bool score1 = true;
+    bool running = true;
+    bool stage0 = false;
+    bool stage1 = false;
+    bool stage2 = false;
+    bool derivativeState = true;
+    double angleDERIVATIVE;
+    double angleDERIVATIVE2;
+    double derivative;
+    double ki = 0;
+    double speed = 0;
 
     frc::DigitalInput insideSwitch {0};
     frc::DigitalInput armSwitch {1};

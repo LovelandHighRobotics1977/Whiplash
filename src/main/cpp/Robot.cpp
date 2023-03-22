@@ -154,47 +154,46 @@ void Robot::RobotInit() {
 void Robot::RobotPeriodic() {}
 
 void Robot::AutonomousInit() {
-  ahrs->ZeroYaw();
+  //ahrs->ZeroYaw();
   AutoDrive(0,0,0,0);
 }
 void Robot::AutonomousPeriodic() {
-  //GrabberArm(0,0,0,0,1);
-
-  /*if(testing == true){
-  driveDistance(2.5, 100, 1);
-  driveDistance(2.5, 200, 1);
-  driveDistance(2.5, 300, 1);
-  driveDistance(2.5, 400, 1);
-  driveDistance(2.5, 500, 1);
-  driveDistance(2.5, 600, 1);
-  driveDistance(80, 1000, 1);
-  driveDistance(2.5, 600, 1);
-  driveDistance(2.5, 500, 1);
-  driveDistance(2.5, 400, 1);
-  driveDistance(2.5, 300, 1);
-  driveDistance(2.5, 200, 1);
-  driveDistance(2.5, 100, 1);
-  testing = false;
-  }*/
-
-  //experimental auto balance
-  if((ahrs->GetPitch() <= 10)&&(testing == true)){
-    AutoDrive(1,0,.01,100);
+  while(!stage0){
+    stage0 = score();
   }
 
-  if(ahrs->GetPitch() >= 10){
-    testing = false;
-  }
-  
-  if(ahrs->GetPitch() >= 1){
-    AutoDrive(1,0,.01,50);
-  }
-  if(ahrs->GetPitch() <= -1){
-    AutoDrive(1,0,.01,50);
-  }
-  if((ahrs->GetPitch() <= 1)&&(ahrs->GetPitch() >= -1)){
+  GrabberArm(0,0,0,0,1);
+
+  while(stage1){
+    driveDistance(2.5, 100, 180, 0);
+    driveDistance(2.5, 200, 180, 0);
+    driveDistance(2.5, 300, 180, 0);
+    driveDistance(2.5, 450, 180, 0);
+    driveDistance(2.5, 600, 180, 0);
+    driveDistance(2.5, 700, 180, 0);
+    driveDistance(98,  800, 180, 0);
+    driveDistance(2.5, 700, 180, 0);
+    driveDistance(2.5, 600, 180, 0);
+    driveDistance(2.5, 450, 180, 0);
+    driveDistance(2.5, 300, 180, 0);
+    driveDistance(2.5, 200, 180, 0);
+    driveDistance(2.5, 100, 180, 0);
+    stage1 = false;
+    stage2 = true;
     AutoDrive(0,0,0,0);
   }
+
+  while(stage2){
+    driveDistance(2.5, 100, 180, 1);
+    driveDistance(2.5, 200, 180, 1);
+    driveDistance(63, 300, 180, 1);
+    driveDistance(2.5, 200, 180, 1);
+    driveDistance(2.5, 100, 180, 1);
+    stage2 = false;
+    AutoDrive(0,0,0,0);
+  }
+
+  autoLevel();
 }
 
 void Robot::TeleopInit() {}
@@ -225,9 +224,18 @@ void Robot::TeleopPeriodic() {
   TeleDrive(forward, strafe, rotate, throttle);
   intake(m_driverController.GetAButton(),m_driverController.GetBButton());
 
-  if(m_Joystick.GetRawButton(3) == 1){ahrs->ZeroYaw();}
-  std::cout<<ahrs->GetPitch()<<std::endl;
+  autoArm(220, m_driverController.GetXButton());
 
+  if(m_Joystick.GetRawButton(3) == 1){ahrs->ZeroYaw();}
+
+  if(insideSwitch.Get()){
+    arm_encoder.Reset();
+  }
+
+  if(m_driverController.GetYButton() == 1){
+    score();
+  }
+  std::cout<<ahrs->GetAngle()<<std::endl;
 
 }
 
